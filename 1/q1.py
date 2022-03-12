@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# created by JudeYin @yinjiahuidada@gmail.com
-# create time: 2022-03-11
-# course 工程决策方法与应用
-# teacher Mr.Ma @hongma@foxmail.com
 # the number of class: 1
 # class time: 2022-02-26
-
+# created by JudeYin @yinjiahuidada@gmail.com
+# create time: 2022-03-11
 
 from utils.general import LOGGER
 import cplex
