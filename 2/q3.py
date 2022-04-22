@@ -262,15 +262,17 @@ if __name__ == '__main__':
         num += 1
     constraints_senses = 'L' * num  # 约束条件关系
 
-    _constraint = []
+    num = 0
     for process in processes:  # 总加班时常限制
+        _constraint = []
         for var_name in var_names:
             if var_name.split('_')[0] == 'plus' and var_name.split('_')[1] == process and var_name.split('_')[-1] != 'yes':
                 _constraint.append(var_name)
-    constraint = [_constraint, np.ones(len(_constraint))]
-    constraints_lefts.append(constraint)
-    constraints_rights.append(100)
-    constraints_senses += 'L'  # 约束条件关系
+        constraint = [_constraint, np.ones(len(_constraint))]
+        constraints_lefts.append(constraint)
+        constraints_rights.append(100)
+        num += 1
+    constraints_senses = constraints_senses + 'L' * num  # 约束条件关系
 
     # 销售数量限制
     num = 0
