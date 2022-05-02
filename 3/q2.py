@@ -9,6 +9,7 @@
 from utils.general import LOGGER
 import cplex
 from cplex.exceptions import CplexError
+import numpy as np
 
 '''
 Page 135
@@ -34,3 +35,36 @@ Page 135
 
 if __name__ == '__main__':
     cpx = cplex.Cplex()
+
+    requirements = {
+        'May': {1: 22000, 2: 22000, 3: 25000, 4: 30000},
+        'June': {1: 35000, 2: 35000, 3: 40000, 4: 40000},
+        'July': {1: 45000, 2: 45000, 3: 45000, 4: 45000},
+        'Aug': {1: 45000, 2: 45000, 3: 45000, 4: 45000},
+        'Sep': {1: 12000, 2: 10000, 3: 10000, 4: 8000},
+    }
+    labour_apply = {
+        'May': {1: 800, 2: 200, 3: 200, 4: 200},
+        'June': {1: 200, 2: 200, 3: 200, 4: 200},
+        'July': {1: 100, 2: 100, 3: 100, 4: 100},
+        'Aug': {1: 100, 2: 100, 3: 100, 4: 100},
+        'Sep': {1: 0, 2: 0, 3: 0, 4: 0},
+    }
+    labour_leave = {
+        'May': {1: 800, 2: 200, 3: 200, 4: 200},
+        'June': {1: 200, 2: 200, 3: 200, 4: 200},
+        'July': {1: 100, 2: 100, 3: 100, 4: 100},
+        'Aug': {1: 100, 2: 100, 3: 100, 4: 100},
+        'Sep': {1: 0, 2: 0, 3: 0, 4: 0},
+    }
+    labour_usage = {'new': 10, 'exp': 30, }
+
+    var_names = [
+        f'{requirement}_{i}'
+        for requirement in requirements for i in requirements[requirement]
+    ]
+    print(var_names)
+    lbs = np.hstack((np.array(800), np.zeros(len(var_names)-1)))  # 下界
+    ubs = [labour_apply[var_name.split('_')[0]][int(var_name.split('_')[-1])] for var_name in var_names]  # 上界
+    var_types = 'I' * len(var_names)  # 数据类型
+    print(var_types)
