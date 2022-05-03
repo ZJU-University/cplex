@@ -62,29 +62,23 @@ if __name__ == '__main__':
         f'{requirement}_{i}'
         for requirement in requirements for i in requirements[requirement]
     ]
-
+    print(var_names)
     lbs = np.hstack((np.array(700), np.array(800), np.zeros(len(var_names) - 2)))  # 下界
     ubs = [float(labour_apply[var_name.split('_')[0]][int(var_name.split('_')[-1])]) for var_name in var_names]  # 上界
     var_types = 'I' * len(var_names)  # 数据类型
 
-    objective = [var_name for var_name in var_names]  # 总雇佣人数
+    objective = [1] * len(var_names)  # 总雇佣人数
 
     # 约束条件
     constraints_lefts = []  # 约束条件左边
     constraints_rights = []  # 约束条件右边
 
     # 工时满足
-    n = 1
     _constraint = []
     __constraint = [30/0.85]
     for i, var_name in enumerate(var_names):
         _constraint.append(var_name)
         if i == 0:
-            # constraint = [_constraint.copy(), __constraint.copy()]
-            # constraints_lefts.append(constraint)
-            # constraints_rights.append(
-            #     requirements[var_name.split('_')[0]][int(var_name.split('_')[-1])]
-            # )
             pass
         else:
             __constraint = [exp_left[var_name.split('_')[0]][int(var_name.split('_')[-1])] * x for x in __constraint]
@@ -105,6 +99,9 @@ if __name__ == '__main__':
 
     constraints_senses = 'G' * len(constraints_rights)
     constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
+    for i in range(len(constraints_lefts)):
+        print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
+
 
     try:
         cpx.objective.set_sense(cpx.objective.sense.minimize)  # 求解目标: 最小值
