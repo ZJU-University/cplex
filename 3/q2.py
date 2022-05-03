@@ -63,8 +63,8 @@ if __name__ == '__main__':
         for requirement in requirements for i in requirements[requirement]
     ]
     print(var_names)
-    lbs = np.hstack((np.array(700), np.array(800), np.zeros(len(var_names) - 2)))  # 下界
-    ubs = [float(labour_apply[var_name.split('_')[0]][int(var_name.split('_')[-1])]) for var_name in var_names]  # 上界
+    lbs = np.hstack((np.array(700), np.zeros(len(var_names) - 1)))  # 下界
+    ubs = [700] + [cplex.infinity] * (len(var_names) - 5) + [0] * 4  # 上界
     var_types = 'I' * len(var_names)  # 数据类型
 
     objective = [1] * len(var_names)  # 总雇佣人数
@@ -76,28 +76,41 @@ if __name__ == '__main__':
     # 工时满足
     _constraint = []
     __constraint = [30/0.85]
+
+    # # 可雇佣人数满足
+    # _constraint_able = []
+    # t_num = 0
+
+    constraints_senses = ''
     for i, var_name in enumerate(var_names):
         _constraint.append(var_name)
         if i == 0:
             pass
         else:
-            __constraint = [exp_left[var_name.split('_')[0]][int(var_name.split('_')[-1])] * x for x in __constraint]
+            # # 可供雇佣的人数
+            # _constraint_able.append(var_name)
+            # t_num += labour_apply[var_name.split('_')[0]][int(var_name.split('_')[-1])]
+            # # 约束条件
+            # constraint_able = [_constraint_able.copy(), [1] * len(_constraint_able.copy())]
+            # constraints_lefts.append(constraint_able)
+            # constraints_senses += 'L'
+            # constraints_rights.append(t_num)
 
+            # 工时
+            __constraint = [exp_left[var_name.split('_')[0]][int(var_name.split('_')[-1])] * x for x in __constraint]
             # 新员工会在下一周成为有经验的员工
             __constraint = __constraint[:-1]
             __constraint += [labour_usage['exp']]
-
             # 新员工
             __constraint += [labour_usage['new']]
-
             # 约束条件
             constraint = [_constraint.copy(), __constraint.copy()]
             constraints_lefts.append(constraint)
+            constraints_senses += 'G'
             constraints_rights.append(
                 requirements[var_name.split('_')[0]][int(var_name.split('_')[-1])]
             )
 
-    constraints_senses = 'G' * len(constraints_rights)
     constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
     for i in range(len(constraints_lefts)):
         print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
