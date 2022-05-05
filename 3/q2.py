@@ -10,6 +10,7 @@ from utils.general import LOGGER
 import cplex
 from cplex.exceptions import CplexError
 import numpy as np
+import pandas as pd
 
 '''
 Page 135
@@ -132,8 +133,8 @@ if __name__ == '__main__':
             )
 
     constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
-    for i in range(len(constraints_lefts)):
-        print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
+    # for i in range(len(constraints_lefts)):
+    #     print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
 
     try:
         cpx.objective.set_sense(cpx.objective.sense.minimize)  # 求解目标: 最小值
@@ -155,9 +156,13 @@ if __name__ == '__main__':
         x = cpx.solution.get_values()  # 最优情况下的变量值
         objective_value = cpx.solution.get_objective_value()  # 最优情况下的目标值
 
+        df = pd.DataFrame(columns=[
+                'var_names', 'objective_value'
+            ])
         for i, var_name in enumerate(var_names):
-            LOGGER.info(f'最优自变量 {var_name}: {x[i]}')
-        LOGGER.info(f'最优结果: {objective_value}')
+            df.loc[i] = [var_name, x[i]]
+        LOGGER.info(f'All variables\n{df}')
+        LOGGER.info(f'Best result: {objective_value}')
 
     except CplexError as e:
         LOGGER.error(e)
