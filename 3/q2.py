@@ -37,84 +37,103 @@ if __name__ == '__main__':
     cpx = cplex.Cplex()
 
     requirements = {
-        'May': {0: 0, 1: 22000, 2: 22000, 3: 25000, 4: 30000},
+        'May': {1: 22000, 2: 22000, 3: 25000, 4: 30000},
         'June': {1: 35000, 2: 35000, 3: 40000, 4: 40000},
         'July': {1: 45000, 2: 45000, 3: 45000, 4: 45000},
         'Aug': {1: 45000, 2: 45000, 3: 45000, 4: 45000},
         'Sep': {1: 12000, 2: 10000, 3: 10000, 4: 8000},
     }
-    labour_apply = {
-        'May': {0: 700, 1: 800, 2: 200, 3: 200, 4: 200},
+    labour_new_apply = {
+        'May': {1: 1500, 2: 200, 3: 200, 4: 200},
         'June': {1: 200, 2: 200, 3: 200, 4: 200},
         'July': {1: 100, 2: 100, 3: 100, 4: 100},
         'Aug': {1: 100, 2: 100, 3: 100, 4: 100},
         'Sep': {1: 0, 2: 0, 3: 0, 4: 0},
     }
-    labour_usage = {'new': 10, 'exp': 30, }
+    labour_usage = {'exp': 30, 'new': 10}
     exp_left = {
-        'May': {0: 1, 1: 0.85, 2: 0.85, 3: 0.85, 4: 0.85},
+        'May': {2: 0.85, 3: 0.85, 4: 0.85},
         'June': {1: 0.85, 2: 0.85, 3: 0.85, 4: 0.85},
         'July': {1: 0.85, 2: 0.85, 3: 0.85, 4: 0.85},
-        'Aug': {1: 0.85, 2: 0.85, 3: 0.85, 4: 0.25},
-        'Sep': {1: 0.9, 2: 0.9, 3: 0.9, 4: 0.9},
+        'Aug': {1: 0.85, 2: 0.85, 3: 0.85, 4: 0.85},
+        'Sep': {1: 0.25, 2: 0.9, 3: 0.9, 4: 0.9},
     }
     var_names = [
-        f'{requirement}_{i}'
-        for requirement in requirements for i in requirements[requirement]
+        f'{requirement}_{i}_{labour_type}'
+        for requirement in requirements for i in requirements[requirement] for labour_type in labour_usage.keys()
     ]
-    print(var_names)
-    lbs = np.hstack((np.array(700), np.zeros(len(var_names) - 1)))  # 下界
-    ubs = [700] + [cplex.infinity] * (len(var_names) - 5) + [0] * 4  # 上界
+
+    lbs = np.zeros(len(var_names))  # 下界
+    ubs = [cplex.infinity] * len(var_names)  # 上界
     var_types = 'I' * len(var_names)  # 数据类型
 
+    # 目标函数
     objective = [1] * len(var_names)  # 总雇佣人数
 
     # 约束条件
     constraints_lefts = []  # 约束条件左边
+    constraints_senses = ''  # 约束条件场景
     constraints_rights = []  # 约束条件右边
+
+    # 可雇佣人数满足: 有经验的员工
+    _constraint_exp_able = []
+    exp_num_limit = 700
+
+    # 可雇佣人数满足: 新员工
+    _constraint_new_able = []
+    new_num_limit = 0
 
     # 工时满足
     _constraint = []
-    __constraint = [30/0.85]
+    __constraint = []
 
-    # # 可雇佣人数满足
-    # _constraint_able = []
-    # t_num = 0
-
-    constraints_senses = ''
     for i, var_name in enumerate(var_names):
         _constraint.append(var_name)
-        if i == 0:
-            pass
-        else:
-            # # 可供雇佣的人数
-            # _constraint_able.append(var_name)
-            # t_num += labour_apply[var_name.split('_')[0]][int(var_name.split('_')[-1])]
-            # # 约束条件
-            # constraint_able = [_constraint_able.copy(), [1] * len(_constraint_able.copy())]
-            # constraints_lefts.append(constraint_able)
-            # constraints_senses += 'L'
-            # constraints_rights.append(t_num)
 
+        # 有经验的员工
+        if var_name.split('_')[-1] == 'exp':
+            _constraint_exp_able.append(var_name)
+            # 约束条件
+            constraint_able = [_constraint_exp_able.copy(), [1] * len(_constraint_exp_able.copy())]
+            constraints_lefts.append(constraint_able)
+            constraints_senses += 'L'
+            constraints_rights.append(exp_num_limit)
+
+        # 新员工
+        if var_name.split('_')[-1] == 'new':
+            _constraint_new_able.append(var_name)
+            # 约束条件
+            constraint_able = [_constraint_new_able.copy(), [1] * len(_constraint_new_able.copy())]
+            constraints_lefts.append(constraint_able)
+            constraints_senses += 'L'
+            new_num_limit += labour_new_apply[var_name.split('_')[0]][int(var_name.split('_')[1])]
+            constraints_rights.append(new_num_limit)
+
+        if i % 2 == 1:
             # 工时
-            __constraint = [exp_left[var_name.split('_')[0]][int(var_name.split('_')[-1])] * x for x in __constraint]
-            # 新员工会在下一周成为有经验的员工
-            __constraint = __constraint[:-1]
-            __constraint += [labour_usage['exp']]
-            # 新员工
-            __constraint += [labour_usage['new']]
+            if i == 1:
+                __constraint = [labour_usage[x.split('_')[-1]] for x in _constraint]
+            else:
+                # 上一周
+                # 新员工会在下一周成为有经验的员工
+                __constraint = __constraint[:-1]
+                __constraint = [exp_left[var_name.split('_')[0]][int(var_name.split('_')[1])] * x for x in __constraint]
+                __constraint += [labour_usage['exp']]
+
+                # 当周
+                __constraint += [labour_usage[x.split('_')[-1]] for x in _constraint[-2:]]
+
             # 约束条件
             constraint = [_constraint.copy(), __constraint.copy()]
             constraints_lefts.append(constraint)
             constraints_senses += 'G'
             constraints_rights.append(
-                requirements[var_name.split('_')[0]][int(var_name.split('_')[-1])]
+                requirements[var_name.split('_')[0]][int(var_name.split('_')[1])]
             )
 
     constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
     for i in range(len(constraints_lefts)):
         print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
-
 
     try:
         cpx.objective.set_sense(cpx.objective.sense.minimize)  # 求解目标: 最小值
