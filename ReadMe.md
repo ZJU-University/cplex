@@ -3,3 +3,6 @@
 Teacher: Mr.Ma 
 Mail: hongma@foxmail.com
 ```
+
+# python interpreter
+    Python 3.7.11 
