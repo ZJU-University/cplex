@@ -210,7 +210,8 @@ if __name__ == '__main__':
             ])
         for i, var_name in enumerate(var_names):
             if x[i] != 0:
-                LOGGER.info(f'All variables {var_name}: {x[i]}')
+                df.loc[i] = [var_name, x[i]]
+        LOGGER.info(f'All variables\n{df}')
         LOGGER.info(f'Best result: {objective_value}')
 
     except CplexError as e:
