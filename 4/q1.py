@@ -144,14 +144,21 @@ if __name__ == '__main__':
             constraints_rights.append(1)
 
     # 时间段符合要求
-    for var_name in var_names:
-        ava_time = programs[var_name.split('_')[0]][var_name.split('_')[1]]['ava_time']
-        if min(weeks[var_name.split('_')[-1]]['range']) <= ava_time <= max(weeks[var_name.split('_')[-1]]['range']):
-            pass
-        else:
-            constraints_lefts.append([[var_name], [1]])
-            constraints_senses += 'E'
-            constraints_rights.append(0)
+    for week in weeks:
+        _constraint = []
+        __constraint = []
+        for var_name in var_names:
+            if var_name.split('_')[-1] == week:
+                _constraint.append(var_name)
+                __constraint.append(programs[var_name.split('_')[0]][var_name.split('_')[1]]['ava_time'])
+        # 大于最小值
+        constraints_lefts.append([_constraint, __constraint])
+        constraints_senses += 'G'
+        constraints_rights.append(min(weeks[week]['range']))
+        # 小于最大值
+        constraints_lefts.append([_constraint, __constraint])
+        constraints_senses += 'L'
+        constraints_rights.append(max(weeks[week]['range']))
 
     # 费用符合要求
     _constraint = []
