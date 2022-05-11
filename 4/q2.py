@@ -9,6 +9,8 @@
 from utils.general import LOGGER
 import cplex
 from cplex.exceptions import CplexError
+import numpy as np
+import pandas as pd
 
 '''
 Page 198
@@ -47,7 +49,7 @@ Page 198
     | factory | Weekly Waste Volume (barrels) |
     +---------+-------------------------------+
     |   JSBT  |               35              |
-    |   DWR   |               26              |
+    |   DWE   |               26              |
     |    MK   |               42              |
     |   SEM   |               53              |
     |   GLB   |               29              |
@@ -62,10 +64,10 @@ Page 198
     
     工厂（成本，美元）
     +---------+------+-----+----+-----+-----+-----+
-    | factory | JSBT | DWR | MK | SEM | GLB | YLD |
+    | factory | JSBT | DWE | MK | SEM | GLB | YLD |
     +---------+------+-----+----+-----+-----+-----+
     |   JSBT  |  0   |  6  | 4  |  9  |  7  |  8  |
-    |   DWR   |  6   |  0  | 11 |  10 |  12 |  7  |
+    |   DWE   |  6   |  0  | 11 |  10 |  12 |  7  |
     |    MK   |  5   |  11 | 0  |  3  |  7  |  15 |
     |   SEM   |  9   |  10 | 3  |  0  |  3  |  16 |
     |   GLB   |  7   |  12 | 7  |  3  |  0  |  14 |
@@ -89,4 +91,106 @@ Page 198
 if __name__ == '__main__':
     cpx = cplex.Cplex()
 
+    factory_wastes = {
+        'JSBT': 35, 'DWE': 26, 'MK': 42, 'SEM': 53, 'GLB': 29, 'YLD': 38,
+    }  # 工厂产生的废物
+    plant_capacities = {'BS': 65, 'LSKL': 80, 'DLS': 105}  # 处理厂最大处理能力
+    transport_costs = {
+        'JSBT': {'JSBT': 0, 'DWE': 6, 'MK': 4, 'SEM': 9, 'GLB': 7, 'YLD': 8, 'BS': 12, 'LSKL': 15, 'DLS': 17},
+        'DWE': {'JSBT': 6, 'DWE': 0, 'MK': 11, 'SEM': 10, 'GLB': 12, 'YLD': 7, 'BS': 14, 'LSKL': 9, 'DLS': 10},
+        'MK': {'JSBT': 5, 'DWE': 11, 'MK': 0, 'SEM': 3, 'GLB': 7, 'YLD': 15, 'BS': 13, 'LSKL': 20, 'DLS': 11},
+        'SEM': {'JSBT': 9, 'DWE': 10, 'MK': 3, 'SEM': 0, 'GLB': 3, 'YLD': 16, 'BS': 17, 'LSKL': 16, 'DLS': 19},
+        'GLB': {'JSBT': 7, 'DWE': 12, 'MK': 7, 'SEM': 3, 'GLB': 0, 'YLD': 14, 'BS': 7, 'LSKL': 14, 'DLS': 12},
+        'YLD': {'JSBT': 8, 'DWE': 7, 'MK': 15, 'SEM': 16, 'GLB': 14, 'YLD': 0, 'BS': 22, 'LSKL': 16, 'DLS': 18},
+        'BS': {'BS': 0, 'LSKL': 12, 'DLS': 10},
+        'LSKL': {'BS': 12, 'LSKL': 0, 'DLS': 15},
+        'DLS': {'BS': 10, 'LSKL': 15, 'DLS': 0},
+    }  # 运输成本
 
+    var_names = [
+        f'{from_situation}_{to_situation}'
+        for from_situation in transport_costs for to_situation in transport_costs[from_situation]
+        if from_situation != to_situation
+    ]
+    print(var_names)
+
+    lbs = np.zeros(len(var_names))  # 下界
+    ubs = [cplex.infinity] * len(var_names)  # 上界
+    var_types = 'I' * len(var_names)  # 数据类型
+
+    # 目标函数
+    objective = []
+    for var_name in var_names:
+        objective.append(transport_costs[var_name.split('_')[0]][var_name.split('_')[1]])
+    print(objective)
+
+    # 约束条件
+    constraints_lefts = []  # 约束条件左边
+    constraints_senses = ''  # 约束条件场景
+    constraints_rights = []  # 约束条件右边
+
+    # 不能超过处理厂最大处理能力
+    for plant in plant_capacities:
+        _constraint = []
+        __constraint = []
+        for var_name in var_names:
+            if var_name.split('_')[0] == plant:
+                _constraint.append(var_name)
+                __constraint.append(-1)
+            elif var_name.split('_')[-1] == plant:
+                _constraint.append(var_name)
+                __constraint.append(1)
+        constraints_lefts.append([_constraint, __constraint])
+        constraints_senses += 'L'
+        constraints_rights.append(plant_capacities[plant])
+
+    # 工厂需要运输出去的废物等于工厂产生的废物
+    for factory in factory_wastes:
+        _constraint = []
+        __constraint = []
+        for var_name in var_names:
+            if var_name.split('_')[0] == factory:
+                _constraint.append(var_name)
+                __constraint.append(-1)
+            elif var_name.split('_')[-1] == factory:
+                _constraint.append(var_name)
+                __constraint.append(1)
+        constraints_lefts.append([_constraint, __constraint])
+        constraints_senses += 'E'
+        constraints_rights.append(-factory_wastes[factory])
+
+    constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
+    # for i in range(len(constraints_lefts)):
+    #     print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
+
+    try:
+        cpx.objective.set_sense(cpx.objective.sense.minimize)  # 求解目标: 最小值
+        cpx.variables.add(
+            obj=objective,
+            lb=lbs,
+            ub=ubs,
+            types=var_types,
+            names=var_names
+        )  # 设置变量
+        cpx.linear_constraints.add(
+            lin_expr=constraints_lefts,
+            senses=constraints_senses,
+            rhs=constraints_rights,
+            names=constraints_names
+        )  # 添加约束
+
+        cpx.solve()  # 问题求解
+        x = cpx.solution.get_values()  # 最优情况下的变量值
+        objective_value = cpx.solution.get_objective_value()  # 最优情况下的目标值
+
+        df = pd.DataFrame(columns=[
+                'var_names', 'objective_value'
+            ])
+        for i, var_name in enumerate(var_names):
+            if x[i] != 0:
+                df.loc[i] = [var_name, x[i]]
+        LOGGER.info(f'All variables\n{df}')
+        LOGGER.info(f'Best result: {objective_value}')
+
+    except CplexError as e:
+        LOGGER.error(e)

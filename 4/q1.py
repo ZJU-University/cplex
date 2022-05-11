@@ -189,8 +189,8 @@ if __name__ == '__main__':
     constraints_rights.append(0)
 
     constraints_names = [f'c{i}' for i in range(len(constraints_lefts))]  # 约束规则名
-    for i in range(len(constraints_lefts)):
-        print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
+    # for i in range(len(constraints_lefts)):
+    #     print(i, constraints_lefts[i], constraints_senses[i], constraints_rights[i])
 
     try:
         cpx.objective.set_sense(cpx.objective.sense.maximize)  # 求解目标: 最大值
