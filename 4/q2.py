@@ -112,7 +112,6 @@ if __name__ == '__main__':
         for from_situation in transport_costs for to_situation in transport_costs[from_situation]
         if from_situation != to_situation
     ]
-    print(var_names)
 
     lbs = np.zeros(len(var_names))  # 下界
     ubs = [cplex.infinity] * len(var_names)  # 上界
@@ -122,7 +121,6 @@ if __name__ == '__main__':
     objective = []
     for var_name in var_names:
         objective.append(transport_costs[var_name.split('_')[0]][var_name.split('_')[1]])
-    print(objective)
 
     # 约束条件
     constraints_lefts = []  # 约束条件左边
